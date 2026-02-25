@@ -1,0 +1,8 @@
+{
+  "name": "Remix: IESA GERIZIM - GEST",
+  "description": "Sistema integrado de gestão administrativa, financeira e espiritual para a Igreja Evangélica Sinodal de Angola (IESA), com suporte offline e controlo de acessos por departamento.",
+  "requestFramePermissions": [
+    "camera",
+    "microphone"
+  ]
+}

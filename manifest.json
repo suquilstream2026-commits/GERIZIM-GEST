@@ -1,0 +1,22 @@
+
+{
+  "name": "IESA GERIZIM - GEST",
+  "short_name": "IESA-GEST",
+  "description": "Sistema de Gestão Eclesiástica IESA Gerizim",
+  "start_url": ".",
+  "display": "standalone",
+  "background_color": "#0f172a",
+  "theme_color": "#dc2626",
+  "icons": [
+    {
+      "src": "https://i.ibb.co/v4m0Yv8/iesa-logo.png",
+      "sizes": "192x192",
+      "type": "image/png"
+    },
+    {
+      "src": "https://i.ibb.co/v4m0Yv8/iesa-logo.png",
+      "sizes": "512x512",
+      "type": "image/png"
+    }
+  ]
+}
