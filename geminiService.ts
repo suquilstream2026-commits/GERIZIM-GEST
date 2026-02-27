@@ -56,9 +56,12 @@ export async function editImagePrompt(base64Image: string, prompt: string) {
     },
   });
 
-  for (const part of response.candidates[0].content.parts) {
-    if (part.inlineData) {
-      return `data:image/png;base64,${part.inlineData.data}`;
+  const candidates = response.candidates || [];
+  if (candidates.length > 0 && candidates[0].content?.parts) {
+    for (const part of candidates[0].content.parts) {
+      if (part.inlineData) {
+        return `data:image/png;base64,${part.inlineData.data}`;
+      }
     }
   }
   throw new Error("Não foi possível editar a imagem.");
@@ -80,9 +83,12 @@ export async function generateLogo(prompt: string) {
     }
   });
 
-  for (const part of response.candidates[0].content.parts) {
-    if (part.inlineData) {
-      return `data:image/png;base64,${part.inlineData.data}`;
+  const candidates = response.candidates || [];
+  if (candidates.length > 0 && candidates[0].content?.parts) {
+    for (const part of candidates[0].content.parts) {
+      if (part.inlineData) {
+        return `data:image/png;base64,${part.inlineData.data}`;
+      }
     }
   }
   throw new Error("Não foi possível gerar o logótipo.");

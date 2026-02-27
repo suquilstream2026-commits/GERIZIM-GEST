@@ -201,6 +201,7 @@ const Treasury: React.FC = () => {
                   <option value={TransactionCategory.OFFERING}>Ofertas Gerais</option>
                   <option value={TransactionCategory.MISSIONARY}>Fundo Missionário</option>
                   <option value={TransactionCategory.EXPENSE}>Despesas</option>
+                  <option value={TransactionCategory.CBIC_CONTRIBUTION}>Contribuição CBIC</option>
                </select>
             </div>
             <div className="flex items-end">
@@ -298,6 +299,7 @@ const Treasury: React.FC = () => {
                     <option value={TransactionCategory.CONSTRUCTION}>Oferta Construção</option>
                     <option value={TransactionCategory.MISSIONARY}>Fundo Missionário</option>
                     <option value={TransactionCategory.EXPENSE}>Despesa</option>
+                    <option value={TransactionCategory.CBIC_CONTRIBUTION}>Contribuição CBIC</option>
                   </select>
                 </div>
                 <div className="space-y-1">

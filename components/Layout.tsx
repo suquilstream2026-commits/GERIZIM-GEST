@@ -6,7 +6,7 @@ import {
   LayoutDashboard, Calendar, Users, Wallet, FileText, 
   BookOpen, Film, Settings, LogOut, 
   Menu, X, Moon, Sun, Accessibility, 
-  Shield, Heart, Search, Music, CreditCard
+  Shield, Heart, Search, Music, CreditCard, Wifi, WifiOff, RefreshCw
 } from 'lucide-react';
 import { UserRole } from '../types';
 import MemberCard from './MemberCard';
@@ -16,7 +16,7 @@ interface LayoutProps {
 }
 
 const Layout: React.FC<LayoutProps> = ({ children }) => {
-  const { user, logout, theme, toggleTheme, accessibilityMode, toggleAccessibilityMode, appLogo, appName, registeredUsers } = useAuth();
+  const { user, logout, theme, toggleTheme, accessibilityMode, toggleAccessibilityMode, appLogo, appName, registeredUsers, isOffline } = useAuth();
   const location = useLocation();
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
   const [showMyCard, setShowMyCard] = useState(false);
@@ -89,11 +89,21 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
             </button>
           </nav>
 
-          <div className="p-6 mt-auto">
+          <div className="p-6 mt-auto space-y-4">
+            <div className="flex items-center justify-between px-6 py-3 bg-slate-500/5 rounded-2xl">
+              <div className="flex items-center gap-2">
+                <RefreshCw size={12} className={`text-blue-500 ${!isOffline ? 'animate-spin' : ''}`} />
+                <span className="text-[8px] font-black uppercase tracking-widest text-slate-400">
+                  {isOffline ? 'Modo Offline' : 'Sincronizado'}
+                </span>
+              </div>
+              {isOffline ? <WifiOff size={12} className="text-rose-500" /> : <Wifi size={12} className="text-emerald-500" />}
+            </div>
+
             <div className="bg-slate-500/5 rounded-3xl p-6 flex flex-col gap-4">
               <div className="flex items-center gap-4">
                 <div className="w-10 h-10 rounded-xl bg-slate-200 dark:bg-slate-800 flex items-center justify-center font-black text-slate-600 dark:text-slate-400 text-xs">
-                  {user?.name.charAt(0)}
+                  {user?.name?.charAt(0) || '?'}
                 </div>
                 <div className="flex-1 min-w-0">
                   <p className="text-xs font-black truncate dark:text-white">{user?.name}</p>
@@ -141,11 +151,11 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
              {/* USER MINI PROFILE */}
              <div className="flex items-center gap-4 bg-white/70 dark:bg-slate-900/70 backdrop-blur-md pl-4 pr-1.5 py-1.5 rounded-full border border-slate-200/50 dark:border-white/5 shadow-sm">
                 <div className="hidden sm:block text-right">
-                   <p className="text-[10px] font-black uppercase tracking-tight leading-none dark:text-white truncate max-w-[100px]">{user?.name.split(' ')[0]}</p>
+                   <p className="text-[10px] font-black uppercase tracking-tight leading-none dark:text-white truncate max-w-[100px]">{user?.name?.split(' ')[0] || 'Usuário'}</p>
                    <p className="text-[8px] font-bold text-slate-400 uppercase tracking-widest mt-1">Online</p>
                 </div>
                 <div className="w-8 h-8 rounded-full bg-slate-900 dark:bg-white text-white dark:text-slate-900 flex items-center justify-center font-black text-[10px]">
-                   {user?.name.charAt(0)}
+                   {user?.name?.charAt(0) || '?'}
                 </div>
              </div>
           </div>
@@ -203,14 +213,24 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
                 ))}
               </nav>
 
-              <div className="pt-6 border-t border-slate-100 dark:border-slate-800">
+              <div className="pt-6 border-t border-slate-100 dark:border-slate-800 space-y-4">
+                <div className="flex items-center justify-between px-6 py-3 bg-slate-500/5 rounded-2xl">
+                  <div className="flex items-center gap-2">
+                    <RefreshCw size={12} className={`text-blue-500 ${!isOffline ? 'animate-spin' : ''}`} />
+                    <span className="text-[8px] font-black uppercase tracking-widest text-slate-400">
+                      {isOffline ? 'Modo Offline' : 'Sincronizado'}
+                    </span>
+                  </div>
+                  {isOffline ? <WifiOff size={12} className="text-rose-500" /> : <Wifi size={12} className="text-emerald-500" />}
+                </div>
+
                 <div className="bg-slate-500/5 rounded-3xl p-5 space-y-4">
                   <div className="flex items-center gap-4">
                     <div className="w-10 h-10 rounded-xl bg-slate-200 dark:bg-slate-800 flex items-center justify-center font-black text-slate-600 dark:text-slate-400 text-xs shadow-inner">
-                      {user?.name.charAt(0)}
+                      {user?.name?.charAt(0) || '?'}
                     </div>
                     <div className="flex-1 min-w-0">
-                      <p className="text-xs font-black truncate dark:text-white uppercase tracking-tight">{user?.name}</p>
+                      <p className="text-xs font-black truncate dark:text-white uppercase tracking-tight">{user?.name || 'Usuário'}</p>
                       <p className="text-[8px] font-bold text-slate-400 uppercase tracking-widest truncate">{user?.role}</p>
                     </div>
                   </div>

@@ -12,6 +12,7 @@ import {
 
 import MemberManager from '../components/MemberManager';
 import FamilyManager from '../components/FamilyManager';
+import MemberForm from '../components/MemberForm';
 
 const Secretary: React.FC = () => {
   const { user, registeredUsers, churchCouncil, theme, addCouncilMember, removeCouncilMember, filiais, registerMember } = useAuth();
@@ -94,23 +95,9 @@ const Secretary: React.FC = () => {
     }
   };
 
-  const handleRegister = (e: React.FormEvent<HTMLFormElement>) => {
-    e.preventDefault();
-    const fd = new FormData(e.currentTarget);
-    const department = isDeptLeader ? user?.department : fd.get('department') as string;
-
-    registerMember({
-      name: fd.get('name') as string,
-      department: department,
-      phone: fd.get('phone') as string,
-      filial: fd.get('filial') as string,
-      birthDate: fd.get('birthDate') as string,
-      fatherName: fd.get('fatherName') as string,
-      motherName: fd.get('motherName') as string,
-      notes: notes
-    });
+  const handleRegister = (memberData: any) => {
+    registerMember(memberData);
     setShowAddModal(false);
-    setNotes('');
   };
 
   const filteredMembers = registeredUsers.filter(u => {
@@ -189,98 +176,11 @@ const Secretary: React.FC = () => {
 
       {showAddModal && (
         <div className="fixed inset-0 z-[150] flex items-center justify-center p-6 bg-slate-950/60 backdrop-blur-md animate-in fade-in duration-300">
-          <div className="bg-white dark:bg-slate-900 w-full max-w-2xl p-10 rounded-[3.5rem] shadow-2xl space-y-8 animate-reveal max-h-[90vh] overflow-y-auto no-scrollbar">
-             <div className="flex justify-between items-center border-b border-slate-50 dark:border-slate-800 pb-6">
-               <div>
-                  <h3 className="text-3xl font-black uppercase tracking-tighter dark:text-white">Ficha de Membro</h3>
-                  <p className="text-xs font-bold text-blue-500 uppercase tracking-widest mt-1">Registo Oficial da Secretaria Geral</p>
-               </div>
-               <button onClick={() => setShowAddModal(false)} className="p-4 bg-slate-50 dark:bg-slate-800 rounded-full text-slate-400 hover:text-rose-500 transition-all">
-                  <X size={24}/>
-               </button>
-             </div>
-             
-             <form onSubmit={handleRegister} className="space-y-6">
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                  <div className="space-y-1 md:col-span-2">
-                    <label className="text-[10px] font-black uppercase text-slate-400 ml-1">Nome Completo *</label>
-                    <input name="name" required placeholder="Nome do membro" className="w-full p-4 bg-slate-50 dark:bg-slate-800 border border-slate-100 dark:border-slate-800 rounded-2xl font-bold dark:text-white outline-none focus:ring-2 focus:ring-blue-500" />
-                  </div>
-
-                  <div className="space-y-1">
-                    <label className="text-[10px] font-black uppercase text-slate-400 ml-1">Data de Nascimento *</label>
-                    <input name="birthDate" type="date" required className="w-full p-4 bg-slate-50 dark:bg-slate-800 border border-slate-100 dark:border-slate-800 rounded-2xl font-bold dark:text-white outline-none focus:ring-2 focus:ring-blue-500" />
-                  </div>
-
-                  <div className="space-y-1">
-                    <label className="text-[10px] font-black uppercase text-slate-400 ml-1">Departamento</label>
-                    {isDeptLeader ? (
-                      <div className="relative">
-                        <input disabled value={user?.department || 'Não atribuído'} className="w-full p-4 bg-slate-100 dark:bg-slate-800/50 border border-slate-200 dark:border-slate-700 rounded-2xl font-black text-blue-600 dark:text-blue-400 outline-none" />
-                        <Lock size={14} className="absolute right-4 top-1/2 -translate-y-1/2 text-slate-400" />
-                        <input type="hidden" name="department" value={user?.department} />
-                      </div>
-                    ) : (
-                      <select name="department" className="w-full p-4 bg-slate-50 dark:bg-slate-800 border border-slate-100 dark:border-slate-800 rounded-2xl font-bold dark:text-white outline-none focus:ring-2 focus:ring-blue-500">
-                         <option value="GERAL">Geral (Sem Dept.)</option>
-                         <option value="JIESA">JIESA (Juventude)</option>
-                         <option value="DCIESA">DCIESA (Crianças)</option>
-                         <option value="SHIESA">SHIESA (Senhoras)</option>
-                         <option value="DEBOS">DEBOS (Homens)</option>
-                         <option value="EVANGELIZAÇÃO">Evangelização</option>
-                      </select>
-                    )}
-                  </div>
-
-                  <div className="space-y-1">
-                    <label className="text-[10px] font-black uppercase text-slate-400 ml-1">Filial *</label>
-                    <select name="filial" required className="w-full p-4 bg-slate-50 dark:bg-slate-800 border border-slate-100 dark:border-slate-800 rounded-2xl font-bold dark:text-white outline-none focus:ring-2 focus:ring-blue-500">
-                       {filiais.map(f => <option key={f} value={f}>{f}</option>)}
-                    </select>
-                  </div>
-
-                  <div className="space-y-1">
-                    <label className="text-[10px] font-black uppercase text-slate-400 ml-1">Contacto Telefónico</label>
-                    <input name="phone" placeholder="9xx xxx xxx" className="w-full p-4 bg-slate-50 dark:bg-slate-800 border border-slate-100 dark:border-slate-800 rounded-2xl font-bold dark:text-white outline-none focus:ring-2 focus:ring-blue-500" />
-                  </div>
-
-                  <div className="space-y-1 md:col-span-2">
-                    <div className="flex justify-between items-center ml-1">
-                       <label className="text-[10px] font-black uppercase text-slate-400">Notas Administrativas</label>
-                       <div className="flex items-center gap-2">
-                          {isTranscribing && <div className="flex items-center gap-2 text-[8px] font-black uppercase text-blue-600 animate-pulse"><Sparkles size={12}/> Transcrevendo...</div>}
-                          <button 
-                            type="button"
-                            onMouseDown={startRecording}
-                            onMouseUp={stopRecording}
-                            onMouseLeave={stopRecording}
-                            onTouchStart={startRecording}
-                            onTouchEnd={stopRecording}
-                            className={`p-2 rounded-full transition-all ${isRecording ? 'bg-red-600 text-white animate-pulse' : 'bg-slate-100 dark:bg-slate-800 text-slate-400 hover:text-blue-600'}`}
-                            title="Segure para gravar nota de voz"
-                          >
-                             {isRecording ? <Square size={14}/> : <Mic size={14}/>}
-                          </button>
-                       </div>
-                    </div>
-                    <textarea 
-                      name="notes" 
-                      value={notes}
-                      onChange={e => setNotes(e.target.value)}
-                      placeholder="Informações adicionais... (Use o microfone para ditar)" 
-                      rows={3} 
-                      className="w-full p-4 bg-slate-50 dark:bg-slate-800 border border-slate-100 dark:border-slate-800 rounded-2xl font-bold dark:text-white outline-none resize-none focus:ring-2 focus:ring-blue-500"
-                    ></textarea>
-                  </div>
-                </div>
-
-                <div className="pt-4">
-                  <button type="submit" className="w-full bg-blue-600 text-white p-6 rounded-[2rem] font-black uppercase tracking-widest hover:bg-blue-700 shadow-xl transition-all flex items-center justify-center gap-3">
-                    <Save size={20}/> Concluir Registo do Membro
-                  </button>
-                </div>
-             </form>
-          </div>
+          <MemberForm 
+            onSave={handleRegister}
+            onCancel={() => setShowAddModal(false)}
+            initialData={isDeptLeader ? { department: user?.department } : {}}
+          />
         </div>
       )}
     </div>

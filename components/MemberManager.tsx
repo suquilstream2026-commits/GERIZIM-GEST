@@ -7,7 +7,7 @@ import {
   ChevronRight, Star, GraduationCap, Filter, UserPlus,
   Calendar, Phone, Info, Save, Trash2, History, Eye,
   MapPin, User as UserIcon, Award, BookOpen, Clock,
-  MoreVertical, Edit2, AlertCircle
+  MoreVertical, Edit2, AlertCircle, Key
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 
@@ -19,11 +19,17 @@ interface MemberManagerProps {
 }
 
 const MemberManager: React.FC<MemberManagerProps> = ({ department, title = "Gestão de Membros" }) => {
-  const { user, registeredUsers, registerMember, updateMember, deleteMember, filiais, theme } = useAuth();
+  const { user, registeredUsers, registerMember, updateMember, deleteMember, filiais, areas, theme, generatePassword } = useAuth();
+  
+  const isAdmin = user?.role === UserRole.SUPER_ADMIN;
+  const isSecretary = user?.role === UserRole.SECRETARY;
+  const isDeptLeader = user?.role === UserRole.LEADER;
+  const userDept = user?.department;
+
   const [searchTerm, setSearchTerm] = useState('');
   const [areaFilter, setAreaFilter] = useState('all');
   const [statusFilter, setStatusFilter] = useState('all');
-  const [deptFilter, setDeptFilter] = useState(department || 'all');
+  const [deptFilter, setDeptFilter] = useState(department || (isDeptLeader && !isAdmin ? userDept : 'all'));
   
   const [showAddModal, setShowAddModal] = useState(false);
   const [showDetailsModal, setShowDetailsModal] = useState<User | null>(null);
@@ -31,17 +37,20 @@ const MemberManager: React.FC<MemberManagerProps> = ({ department, title = "Gest
   const [showDeleteConfirm, setShowDeleteConfirm] = useState<string | null>(null);
   const [editingMember, setEditingMember] = useState<User | null>(null);
 
-  const isAdmin = user?.role === UserRole.SUPER_ADMIN || user?.role === UserRole.SECRETARY;
-  const isDeptLeader = user?.role === UserRole.LEADER;
-
   const filteredMembers = registeredUsers.filter(m => {
     const matchesSearch = m.name.toLowerCase().includes(searchTerm.toLowerCase());
+    
+    // Strict department filtering for leaders
+    if (isDeptLeader && !isAdmin) {
+      if (m.department !== userDept) return false;
+    }
+
     const matchesDept = deptFilter === 'all' ? true : m.department === deptFilter;
     const matchesArea = areaFilter === 'all' ? true : m.area === areaFilter;
     const matchesStatus = statusFilter === 'all' ? true : m.participation === statusFilter;
     
-    // If it's a department-specific view, only show that department's members unless searching globally
-    if (department && !searchTerm && m.department !== department) return false;
+    // If it's a department-specific view (e.g. from DCIESA page), only show that department's members
+    if (department && m.department !== department) return false;
     
     return matchesSearch && matchesDept && matchesArea && matchesStatus;
   });
@@ -60,8 +69,6 @@ const MemberManager: React.FC<MemberManagerProps> = ({ department, title = "Gest
     deleteMember(id);
     setShowDeleteConfirm(null);
   };
-
-  const areas = ["Centro", "Alviário", "Kalongombe", "Rua 11", "Sicar", "Bereia"];
 
   return (
     <div className="space-y-6">
@@ -98,7 +105,8 @@ const MemberManager: React.FC<MemberManagerProps> = ({ department, title = "Gest
           <select 
             value={deptFilter} 
             onChange={e => setDeptFilter(e.target.value)}
-            className="w-full px-4 py-3 rounded-xl bg-slate-50 dark:bg-slate-800 border-none font-black text-[10px] uppercase outline-none"
+            disabled={isDeptLeader && !isAdmin}
+            className="w-full px-4 py-3 rounded-xl bg-slate-50 dark:bg-slate-800 border-none font-black text-[10px] uppercase outline-none disabled:opacity-50"
           >
             <option value="all">Todos Departamentos</option>
             <option value="JIESA">JIESA</option>
@@ -125,6 +133,8 @@ const MemberManager: React.FC<MemberManagerProps> = ({ department, title = "Gest
             <option value="all">Todos os Estados</option>
             <option value="ACTIVO">Activo</option>
             <option value="PASSIVO">Passivo</option>
+            <option value="TRANSFERIDO">Transferido</option>
+            <option value="FALECIDO">Falecido</option>
           </select>
         </div>
       </div>
@@ -189,7 +199,19 @@ const MemberManager: React.FC<MemberManagerProps> = ({ department, title = "Gest
                       >
                         <History size={18} />
                       </button>
-                      {isAdmin && (
+                      {(isAdmin || isSecretary) && (
+                        <button 
+                          onClick={() => {
+                            const newPass = generatePassword(m.id);
+                            alert(`Senha gerada para ${m.name}: ${newPass}`);
+                          }}
+                          className="p-2 text-slate-400 hover:text-emerald-600 transition-all" 
+                          title={isAdmin && user?.role === UserRole.SUPER_ADMIN ? "Redefinir Acesso" : "Gerar Senha"}
+                        >
+                          {isAdmin && user?.role === UserRole.SUPER_ADMIN ? <ShieldCheck size={18} /> : <Key size={18} />}
+                        </button>
+                      )}
+                      {(isAdmin || isSecretary || (isDeptLeader && m.department === userDept)) && (
                         <>
                           <button 
                             onClick={() => { setEditingMember(m); setShowAddModal(true); }}
@@ -293,6 +315,16 @@ const MemberManager: React.FC<MemberManagerProps> = ({ department, title = "Gest
                     <p className="text-[10px] font-black uppercase text-slate-400 tracking-widest mb-1">Contacto</p>
                     <p className="font-bold text-sm dark:text-white flex items-center gap-2"><Phone size={14}/> {showDetailsModal.phone || '---'}</p>
                   </div>
+                  {(isAdmin || isSecretary) && showDetailsModal.password && (
+                    <div className="p-4 bg-emerald-50 dark:bg-emerald-900/20 rounded-2xl border border-emerald-100 dark:border-emerald-800/30">
+                      <p className="text-[9px] font-black uppercase text-emerald-600 tracking-widest mb-1 flex items-center gap-2">
+                        <Key size={10} /> Senha de Acesso
+                      </p>
+                      <p className="font-mono font-black text-lg text-emerald-700 dark:text-emerald-400 tracking-wider">
+                        {showDetailsModal.password}
+                      </p>
+                    </div>
+                  )}
                 </div>
               </div>
 

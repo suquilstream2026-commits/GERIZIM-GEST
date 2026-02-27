@@ -4,7 +4,7 @@ import { useAuth } from '../authContext';
 import { 
   Wallet, Calendar, BookOpen, FileText, Plus, Trash2, 
   Save, X, Clock, User as UserIcon, CheckCircle2, AlertCircle,
-  GraduationCap, Users, ShieldCheck, Briefcase
+  GraduationCap, Users, ShieldCheck, Briefcase, Edit2
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import { DeptSchedule, BibleLesson, TransactionCategory, UserRole, Course, CourseEnrollment, CommissionMember } from '../types';
@@ -17,7 +17,7 @@ const DeptManagement: React.FC<DeptManagementProps> = ({ department }) => {
   const { 
     user, theme, registeredUsers, deptSchedules, bibleLessons, 
     courses, courseEnrollments, commissionMembers,
-    addDeptSchedule, removeDeptSchedule, addBibleLesson, removeBibleLesson,
+    addDeptSchedule, updateDeptSchedule, removeDeptSchedule, addBibleLesson, removeBibleLesson,
     addCourse, removeCourse, enrollInCourse, updateEnrollmentStatus, removeEnrollment,
     addCommissionMember, removeCommissionMember,
     addNotification
@@ -25,6 +25,7 @@ const DeptManagement: React.FC<DeptManagementProps> = ({ department }) => {
   
   const [activeTab, setActiveTab] = useState<'finances' | 'schedules' | 'lessons' | 'courses' | 'commission'>('finances');
   const [showAddModal, setShowAddModal] = useState(false);
+  const [editingSchedule, setEditingSchedule] = useState<DeptSchedule | null>(null);
 
   const deptMembers = registeredUsers.filter(m => m.department === department);
   const deptSchedulesList = deptSchedules.filter(s => s.department === department);
@@ -38,17 +39,25 @@ const DeptManagement: React.FC<DeptManagementProps> = ({ department }) => {
   const handleAddSchedule = (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     const fd = new FormData(e.currentTarget);
-    addDeptSchedule({
+    const scheduleData = {
       department,
       title: fd.get('title') as string,
       type: fd.get('type') as any,
       date: fd.get('date') as string,
       time: fd.get('time') as string,
       responsible: fd.get('responsible') as string,
-      participants: []
-    });
+      participants: editingSchedule ? editingSchedule.participants : []
+    };
+
+    if (editingSchedule) {
+      updateDeptSchedule(editingSchedule.id, scheduleData);
+      addNotification(`Escala: ${scheduleData.title} actualizada no departamento ${department}`, user?.name || 'Sistema');
+    } else {
+      addDeptSchedule(scheduleData);
+      addNotification(`Escala: ${scheduleData.title} adicionada ao departamento ${department}`, user?.name || 'Sistema');
+    }
     setShowAddModal(false);
-    addNotification(`Escala: ${fd.get('title')} adicionada ao departamento ${department}`, user?.name || 'Sistema');
+    setEditingSchedule(null);
   };
 
   const handleAddLesson = (e: React.FormEvent<HTMLFormElement>) => {
@@ -181,9 +190,14 @@ const DeptManagement: React.FC<DeptManagementProps> = ({ department }) => {
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
               {deptSchedulesList.map(s => (
                 <div key={s.id} className="bg-white dark:bg-slate-900 p-8 rounded-[2.5rem] border border-slate-100 dark:border-slate-800 shadow-sm space-y-4 relative group">
-                  <button onClick={() => removeDeptSchedule(s.id)} className="absolute top-6 right-6 p-2 text-slate-300 hover:text-rose-500 opacity-0 group-hover:opacity-100 transition-all">
-                    <Trash2 size={16} />
-                  </button>
+                  <div className="absolute top-6 right-6 flex gap-2 opacity-0 group-hover:opacity-100 transition-all">
+                    <button onClick={() => { setEditingSchedule(s); setShowAddModal(true); }} className="p-2 text-slate-300 hover:text-blue-500">
+                      <Edit2 size={16} />
+                    </button>
+                    <button onClick={() => removeDeptSchedule(s.id)} className="p-2 text-slate-300 hover:text-rose-500">
+                      <Trash2 size={16} />
+                    </button>
+                  </div>
                   <div className={`w-10 h-10 rounded-xl flex items-center justify-center ${
                     s.type === 'ENSAIO' ? 'bg-blue-100 text-blue-600' : 
                     s.type === 'ESTUDO' ? 'bg-emerald-100 text-emerald-600' : 'bg-amber-100 text-amber-600'
@@ -329,27 +343,26 @@ const DeptManagement: React.FC<DeptManagementProps> = ({ department }) => {
             >
               <div className="flex justify-between items-center">
                 <h3 className="text-2xl font-black uppercase tracking-tighter dark:text-white">
-                  {activeTab === 'schedules' ? 'Nova Escala' : 
+                  {activeTab === 'schedules' ? (editingSchedule ? 'Editar Escala' : 'Nova Escala') : 
                    activeTab === 'lessons' ? 'Nova Lição' :
                    activeTab === 'courses' ? (canManage ? 'Novo Curso' : 'Inscrição em Curso') :
                    'Adicionar à Comissão'}
                 </h3>
-                <button onClick={() => setShowAddModal(false)} className="p-3 bg-slate-50 dark:bg-slate-800 rounded-full text-slate-400">
+                <button onClick={() => { setShowAddModal(false); setEditingSchedule(null); }} className="p-3 bg-slate-50 dark:bg-slate-800 rounded-full text-slate-400">
                   <X size={20}/>
                 </button>
               </div>
 
               {activeTab === 'schedules' && (
                 <form onSubmit={handleAddSchedule} className="space-y-6">
-                  {/* ... same as before ... */}
                   <div className="space-y-1">
                     <label className="text-[10px] font-black uppercase text-slate-400 ml-1">Título da Atividade</label>
-                    <input name="title" required className="w-full p-4 bg-slate-50 dark:bg-slate-800 border-none rounded-2xl font-bold dark:text-white outline-none focus:ring-2 focus:ring-blue-500" />
+                    <input name="title" defaultValue={editingSchedule?.title} required className="w-full p-4 bg-slate-50 dark:bg-slate-800 border-none rounded-2xl font-bold dark:text-white outline-none focus:ring-2 focus:ring-blue-500" />
                   </div>
                   <div className="grid grid-cols-2 gap-4">
                     <div className="space-y-1">
                       <label className="text-[10px] font-black uppercase text-slate-400 ml-1">Tipo</label>
-                      <select name="type" className="w-full p-4 bg-slate-50 dark:bg-slate-800 border-none rounded-2xl font-bold dark:text-white outline-none">
+                      <select name="type" defaultValue={editingSchedule?.type} className="w-full p-4 bg-slate-50 dark:bg-slate-800 border-none rounded-2xl font-bold dark:text-white outline-none">
                         <option value="ENSAIO">Ensaio</option>
                         <option value="ESTUDO">Estudo Bíblico</option>
                         <option value="ACTIVIDADE">Actividade</option>
@@ -358,21 +371,21 @@ const DeptManagement: React.FC<DeptManagementProps> = ({ department }) => {
                     </div>
                     <div className="space-y-1">
                       <label className="text-[10px] font-black uppercase text-slate-400 ml-1">Data</label>
-                      <input name="date" type="date" required className="w-full p-4 bg-slate-50 dark:bg-slate-800 border-none rounded-2xl font-bold dark:text-white outline-none" />
+                      <input name="date" type="date" defaultValue={editingSchedule?.date} required className="w-full p-4 bg-slate-50 dark:bg-slate-800 border-none rounded-2xl font-bold dark:text-white outline-none" />
                     </div>
                   </div>
                   <div className="grid grid-cols-2 gap-4">
                     <div className="space-y-1">
                       <label className="text-[10px] font-black uppercase text-slate-400 ml-1">Hora</label>
-                      <input name="time" type="time" required className="w-full p-4 bg-slate-50 dark:bg-slate-800 border-none rounded-2xl font-bold dark:text-white outline-none" />
+                      <input name="time" type="time" defaultValue={editingSchedule?.time} required className="w-full p-4 bg-slate-50 dark:bg-slate-800 border-none rounded-2xl font-bold dark:text-white outline-none" />
                     </div>
                     <div className="space-y-1">
                       <label className="text-[10px] font-black uppercase text-slate-400 ml-1">Responsável</label>
-                      <input name="responsible" required className="w-full p-4 bg-slate-50 dark:bg-slate-800 border-none rounded-2xl font-bold dark:text-white outline-none" />
+                      <input name="responsible" defaultValue={editingSchedule?.responsible} required className="w-full p-4 bg-slate-50 dark:bg-slate-800 border-none rounded-2xl font-bold dark:text-white outline-none" />
                     </div>
                   </div>
                   <button type="submit" className="w-full bg-blue-600 text-white p-5 rounded-2xl font-black uppercase tracking-widest hover:bg-blue-700 shadow-lg transition-all flex items-center justify-center gap-2">
-                    <Save size={18}/> Salvar Escala
+                    <Save size={18}/> {editingSchedule ? 'Actualizar Escala' : 'Salvar Escala'}
                   </button>
                 </form>
               )}

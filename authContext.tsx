@@ -1,6 +1,6 @@
 
 import React, { createContext, useContext, useState, ReactNode, useEffect } from 'react';
-import { User, UserRole, AppNotification, ChurchEvent, Song, Member, SpiritualContent, PrayerIntention, SpiritualNote, CBICStudent, Department, HistoryEntry, DeptSchedule, BibleLesson, Family, PastoralNote, Course, CourseEnrollment, CommissionMember } from './types';
+import { User, UserRole, AppNotification, ChurchEvent, Song, Member, SpiritualContent, PrayerIntention, SpiritualNote, CBICStudent, CBICContribution, Department, HistoryEntry, DeptSchedule, BibleLesson, Family, PastoralNote, Course, CourseEnrollment, CommissionMember } from './types';
 import { APP_LOGO, COVER_IMAGE, ACTIVITY_TYPES } from './constants';
 import { getDailySpiritualContent } from './geminiService';
 
@@ -15,14 +15,17 @@ interface AuthContextType {
   appName: string;
   coverImage: string;
   filiais: string[];
+  areas: string[];
   theme: 'light' | 'dark';
   prayerIntentions: PrayerIntention[];
   spiritualNotes: SpiritualNote[];
   // Added missing properties based on usage in pages
   students: CBICStudent[];
+  cbicContributions: CBICContribution[];
   departments: Department[];
   activityTypes: string[];
   accessibilityMode: boolean;
+  isOffline: boolean;
   activeSongId: string | null;
   isMusicPlaying: boolean;
   musicVolume: number;
@@ -59,8 +62,10 @@ interface AuthContextType {
   toggleMusicLoop: () => void;
   addCouncilMember: (member: Member) => void;
   removeCouncilMember: (id: string) => void;
+  generatePassword: (memberId: string) => string;
   // New Actions
   addDeptSchedule: (schedule: Omit<DeptSchedule, 'id'>) => void;
+  updateDeptSchedule: (id: string, updates: Partial<DeptSchedule>) => void;
   removeDeptSchedule: (id: string) => void;
   addBibleLesson: (lesson: Omit<BibleLesson, 'id'>) => void;
   removeBibleLesson: (id: string) => void;
@@ -76,13 +81,20 @@ interface AuthContextType {
   removeEnrollment: (id: string) => void;
   addCommissionMember: (cm: Omit<CommissionMember, 'id'>) => void;
   removeCommissionMember: (id: string) => void;
+  // CBIC Actions
+  addStudent: (student: Omit<CBICStudent, 'id'>) => void;
+  updateStudent: (id: string, updates: Partial<CBICStudent>) => void;
+  removeStudent: (id: string) => void;
+  addCBICContribution: (contribution: Omit<CBICContribution, 'id'>) => void;
+  removeCBICContribution: (id: string) => void;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
 const FIXED_ADMINS: User[] = [
-  { id: 'admin-1', name: 'Joao Suquissa', role: UserRole.SUPER_ADMIN, password: 'Suquissa', filial: 'Centro' },
-  { id: 'admin-2', name: 'IESA GERIZIM', role: UserRole.SUPER_ADMIN, password: 'Gerizim2026', filial: 'Centro' }
+  { id: 'admin-1', name: 'Joao Suquissa', role: UserRole.SUPER_ADMIN, password: 'Suquissa', filial: 'Centro', phone: '(+244) 946458069' },
+  { id: 'admin-2', name: 'IESA GERIZIM', role: UserRole.SUPER_ADMIN, password: 'Gerizim2026', filial: 'Centro', phone: '(+244) 946458069' },
+  { id: 'admin-3', name: 'IESA AREA 3', role: UserRole.SUPER_ADMIN, password: 'Area3Lobito', filial: 'Centro', phone: '(+244) 946458069' }
 ];
 
 const DEFAULT_DEPARTMENTS: Department[] = [
@@ -108,7 +120,20 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
   const [songs, setSongs] = useState<Song[]>(() => JSON.parse(localStorage.getItem('iesa_hinos') || '[]'));
   const [prayerIntentions, setPrayerIntentions] = useState<PrayerIntention[]>(() => JSON.parse(localStorage.getItem('iesa_prayers') || '[]'));
   const [spiritualNotes, setSpiritualNotes] = useState<SpiritualNote[]>(() => JSON.parse(localStorage.getItem('iesa_notes') || '[]'));
-  const [churchCouncil, setChurchCouncil] = useState<Member[]>(() => JSON.parse(localStorage.getItem('iesa_council') || '[]'));
+  const [churchCouncil, setChurchCouncil] = useState<Member[]>(() => {
+    const saved = JSON.parse(localStorage.getItem('iesa_council') || '[]');
+    if (saved.length === 0) {
+      return [{
+        id: 'council-1',
+        name: 'Rev. Joao Suquissa',
+        role: UserRole.LEADER,
+        roleInDept: 'Presidente do Conselho',
+        department: 'GERAL',
+        filial: 'Centro'
+      }];
+    }
+    return saved;
+  });
   const [deptSchedules, setDeptSchedules] = useState<DeptSchedule[]>(() => JSON.parse(localStorage.getItem('iesa_dept_schedules') || '[]'));
   const [bibleLessons, setBibleLessons] = useState<BibleLesson[]>(() => JSON.parse(localStorage.getItem('iesa_bible_lessons') || '[]'));
   const [families, setFamilies] = useState<Family[]>(() => JSON.parse(localStorage.getItem('iesa_families') || '[]'));
@@ -116,12 +141,26 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
   const [courses, setCourses] = useState<Course[]>(() => JSON.parse(localStorage.getItem('iesa_courses') || '[]'));
   const [courseEnrollments, setCourseEnrollments] = useState<CourseEnrollment[]>(() => JSON.parse(localStorage.getItem('iesa_course_enrollments') || '[]'));
   const [commissionMembers, setCommissionMembers] = useState<CommissionMember[]>(() => JSON.parse(localStorage.getItem('iesa_commissions') || '[]'));
+  const [students, setStudents] = useState<CBICStudent[]>(() => JSON.parse(localStorage.getItem('iesa_students') || '[]'));
+  const [cbicContributions, setCbicContributions] = useState<CBICContribution[]>(() => JSON.parse(localStorage.getItem('iesa_cbic_contributions') || '[]'));
   
   const [appLogo, setAppLogo] = useState(() => localStorage.getItem('iesa_app_logo') || APP_LOGO);
   const [appName, setAppName] = useState(() => localStorage.getItem('iesa_app_name') || 'GERIZIM');
   const [coverImage, setCoverImage] = useState(() => localStorage.getItem('iesa_cover_image') || COVER_IMAGE);
   const [theme, setTheme] = useState<'light' | 'dark'>(() => (localStorage.getItem('iesa_theme') as any) || 'light');
   const [accessibilityMode, setAccessibilityMode] = useState(() => localStorage.getItem('iesa_accessibility') === 'true');
+  const [isOffline, setIsOffline] = useState(!window.navigator.onLine);
+
+  useEffect(() => {
+    const handleOnline = () => setIsOffline(false);
+    const handleOffline = () => setIsOffline(true);
+    window.addEventListener('online', handleOnline);
+    window.addEventListener('offline', handleOffline);
+    return () => {
+      window.removeEventListener('online', handleOnline);
+      window.removeEventListener('offline', handleOffline);
+    };
+  }, []);
 
   const [activeSongId, setActiveSongId] = useState<string | null>(null);
   const [isMusicPlaying, setIsMusicPlaying] = useState(false);
@@ -142,6 +181,8 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
   useEffect(() => { localStorage.setItem('iesa_courses', JSON.stringify(courses)); }, [courses]);
   useEffect(() => { localStorage.setItem('iesa_course_enrollments', JSON.stringify(courseEnrollments)); }, [courseEnrollments]);
   useEffect(() => { localStorage.setItem('iesa_commissions', JSON.stringify(commissionMembers)); }, [commissionMembers]);
+  useEffect(() => { localStorage.setItem('iesa_students', JSON.stringify(students)); }, [students]);
+  useEffect(() => { localStorage.setItem('iesa_cbic_contributions', JSON.stringify(cbicContributions)); }, [cbicContributions]);
   useEffect(() => { document.documentElement.classList.toggle('dark', theme === 'dark'); }, [theme]);
   useEffect(() => { localStorage.setItem('iesa_theme', theme); }, [theme]);
   useEffect(() => { localStorage.setItem('iesa_accessibility', accessibilityMode.toString()); }, [accessibilityMode]);
@@ -176,6 +217,12 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     };
     setRegisteredUsers(prev => [...prev, newUser]);
     addNotification(`Gestão: ${newUser.name} cadastrado. Código: ${accessCode}`, 'Admin');
+  };
+
+  const generatePassword = (memberId: string) => {
+    const newPass = `IESA-${Math.floor(1000 + Math.random() * 9000)}`;
+    setRegisteredUsers(prev => prev.map(u => u.id === memberId ? { ...u, password: newPass } : u));
+    return newPass;
   };
 
   const updateMember = (id: string, updates: Partial<User>) => {
@@ -305,6 +352,7 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
   const removeCouncilMember = (id: string) => setChurchCouncil(prev => prev.filter(m => m.id !== id));
 
   const addDeptSchedule = (s: Omit<DeptSchedule, 'id'>) => setDeptSchedules(p => [{ ...s, id: Math.random().toString(36).substr(2, 9) }, ...p]);
+  const updateDeptSchedule = (id: string, updates: Partial<DeptSchedule>) => setDeptSchedules(p => p.map(s => s.id === id ? { ...s, ...updates } : s));
   const removeDeptSchedule = (id: string) => setDeptSchedules(p => p.filter(s => s.id !== id));
   
   const addBibleLesson = (l: Omit<BibleLesson, 'id'>) => setBibleLessons(p => [{ ...l, id: Math.random().toString(36).substr(2, 9) }, ...p]);
@@ -327,15 +375,23 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
   const addCommissionMember = (cm: Omit<CommissionMember, 'id'>) => setCommissionMembers(p => [{ ...cm, id: Math.random().toString(36).substr(2, 9) }, ...p]);
   const removeCommissionMember = (id: string) => setCommissionMembers(p => p.filter(cm => cm.id !== id));
 
+  const addStudent = (s: Omit<CBICStudent, 'id'>) => setStudents(p => [{ ...s, id: Math.random().toString(36).substr(2, 9) }, ...p]);
+  const updateStudent = (id: string, updates: Partial<CBICStudent>) => setStudents(p => p.map(s => s.id === id ? { ...s, ...updates } : s));
+  const removeStudent = (id: string) => setStudents(p => p.filter(s => s.id !== id));
+
+  const addCBICContribution = (c: Omit<CBICContribution, 'id'>) => setCbicContributions(p => [{ ...c, id: Math.random().toString(36).substr(2, 9) }, ...p]);
+  const removeCBICContribution = (id: string) => setCbicContributions(p => p.filter(c => c.id !== id));
+
   return (
     <AuthContext.Provider value={{ 
       user, registeredUsers, churchCouncil, notifications, events, songs, appLogo, appName, coverImage, theme,
       filiais: ["Centro", "Kalongombe", "Sicar", "Alviário", "Rua 11", "Bereia"],
+      areas: ["Centro", "Alviário", "Kalongombe", "Rua 11", "Sicar", "Bereia"],
       prayerIntentions, spiritualNotes,
-      students: [], 
       departments: DEFAULT_DEPARTMENTS,
       activityTypes: ACTIVITY_TYPES,
       accessibilityMode,
+      isOffline,
       activeSongId,
       isMusicPlaying,
       musicVolume,
@@ -344,9 +400,10 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
       courses, courseEnrollments, commissionMembers,
       toggleTheme, toggleAccessibilityMode, updateAppIdentity, registerMember, updateMember, deleteMember, addHistoryEntry, login, logout, addNotification, addEvent, removeEvent, addSong, removeSong,
       addPrayer, togglePrayer, removePrayer, saveSpiritualNote, setActiveSong, toggleMusic, setMusicVolume, toggleMusicLoop,
-      addCouncilMember, removeCouncilMember,
-      addDeptSchedule, removeDeptSchedule, addBibleLesson, removeBibleLesson, addFamily, updateFamily, removeFamily, addPastoralNote, removePastoralNote,
-      addCourse, removeCourse, enrollInCourse, updateEnrollmentStatus, removeEnrollment, addCommissionMember, removeCommissionMember
+      addCouncilMember, removeCouncilMember, generatePassword,
+      addDeptSchedule, updateDeptSchedule, removeDeptSchedule, addBibleLesson, removeBibleLesson, addFamily, updateFamily, removeFamily, addPastoralNote, removePastoralNote,
+      addCourse, removeCourse, enrollInCourse, updateEnrollmentStatus, removeEnrollment, addCommissionMember, removeCommissionMember,
+      students, cbicContributions, addStudent, updateStudent, removeStudent, addCBICContribution, removeCBICContribution
     }}>
       {children}
     </AuthContext.Provider>

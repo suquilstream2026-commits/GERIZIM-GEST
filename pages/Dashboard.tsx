@@ -130,7 +130,7 @@ const Dashboard: React.FC = () => {
               <Zap size={14} fill="white" /> Dashboard Estratégico IESA
             </div>
             <h1 className="text-5xl lg:text-7xl font-black text-white tracking-tighter leading-none">
-              Olá, <span className="text-blue-500">{user?.name.split(' ')[0]}</span>.
+              Olá, <span className="text-blue-500">{user?.name?.split(' ')[0] || 'Usuário'}</span>.
             </h1>
             <p className="text-lg lg:text-xl text-slate-200 font-medium opacity-80 max-w-2xl">Gestão em tempo real do corpo de membros e crescimento da igreja.</p>
           </div>
@@ -184,8 +184,8 @@ const Dashboard: React.FC = () => {
           <h3 className="text-lg font-black uppercase tracking-tighter dark:text-white mb-8 flex items-center gap-3">
             <Users size={20} className="text-blue-500" /> Por Departamento
           </h3>
-          <div className="h-[300px] w-full">
-            <ResponsiveContainer width="100%" height="100%">
+          <div className="h-[300px] w-full min-w-0">
+            <ResponsiveContainer width="100%" height="100%" minWidth={0} minHeight={0}>
               <BarChart data={deptData}>
                 <CartesianGrid strokeDasharray="3 3" vertical={false} stroke={theme === 'dark' ? '#1e293b' : '#f1f5f9'} />
                 <XAxis dataKey="name" axisLine={false} tickLine={false} tick={{ fontSize: 10, fontWeight: 800 }} />
@@ -205,8 +205,8 @@ const Dashboard: React.FC = () => {
           <h3 className="text-lg font-black uppercase tracking-tighter dark:text-white mb-8 flex items-center gap-3">
             <MapPin size={20} className="text-rose-500" /> Por Área Geográfica
           </h3>
-          <div className="h-[300px] w-full">
-            <ResponsiveContainer width="100%" height="100%">
+          <div className="h-[300px] w-full min-w-0">
+            <ResponsiveContainer width="100%" height="100%" minWidth={0} minHeight={0}>
               <PieChart>
                 <Pie
                   data={areaData}
@@ -233,8 +233,8 @@ const Dashboard: React.FC = () => {
           <h3 className="text-lg font-black uppercase tracking-tighter dark:text-white mb-8 flex items-center gap-3">
             <TrendingUp size={20} className="text-emerald-500" /> Por Faixa Etária
           </h3>
-          <div className="h-[300px] w-full">
-            <ResponsiveContainer width="100%" height="100%">
+          <div className="h-[300px] w-full min-w-0">
+            <ResponsiveContainer width="100%" height="100%" minWidth={0} minHeight={0}>
               <AreaChart data={ageData}>
                 <defs>
                   <linearGradient id="colorValue" x1="0" y1="0" x2="0" y2="1">

@@ -28,6 +28,7 @@ export enum TransactionCategory {
   MISSIONARY = 'FUNDO_MISSIONARIO',
   QUOTA = 'QUOTA_DEPARTAMENTAL',
   CONTRIBUTION = 'CONTRIBUICAO_ESPECIAL',
+  CBIC_CONTRIBUTION = 'CONTRIBUICAO_CBIC',
   EXPENSE = 'DESPESA'
 }
 
@@ -66,8 +67,8 @@ export interface User {
   motherName?: string;
   baptismDate?: string;
   area?: string;
-  talents?: string;
-  dons?: string;
+  talents?: string[];
+  dons?: string[];
   history?: HistoryEntry[];
   photo?: string;
   participation?: 'ACTIVO' | 'PASSIVO';
@@ -130,6 +131,15 @@ export interface CBICStudent {
     vol2: { books: { continuous: number; exam: number }[] };
     vol3: { books: { continuous: number; exam: number }[] };
   };
+}
+
+export interface CBICContribution {
+  id: string;
+  studentId: string;
+  studentName: string;
+  amount: number;
+  date: string;
+  month: string;
 }
 
 // Added missing Department interface used in MemberForm.tsx
